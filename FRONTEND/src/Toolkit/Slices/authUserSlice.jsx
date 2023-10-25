@@ -38,7 +38,6 @@ export const loginUser = createAsyncThunk(
   "authUser/loginUser",
   async (loginData) => {
     try {
-      
       const response = await axios.post(
         "http://localhost:5000/contractor/login",
         loginData,
@@ -48,13 +47,15 @@ export const loginUser = createAsyncThunk(
           },
         }
       );
-
+      console.log(response.data);
+      
       if (response.status === 200) {
         return response.data;
       } else {
         throw new Error("Request failed with status: " + response.status);
       }
     } catch (error) {
+      console.log("Bhai idhr aya hua hn main");
       throw error;
     }
   }
@@ -63,7 +64,11 @@ export const loginUser = createAsyncThunk(
 export const authUserSlice = createSlice({
   name: "user",
   initialState,
-  reducers: {},
+  reducers: {
+    setUser: (state, action) => {
+      state.authUser = action.payload;
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(loginUser.pending, (state) => {
