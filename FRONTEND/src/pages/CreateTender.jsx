@@ -1,52 +1,126 @@
 import React, { useState } from "react";
 import { useSelector } from "react-redux";
 import styles from "./CreateTender.module.css";
+import dayjs from "dayjs";
 import axios from "axios";
+// import DatePicker from "../components/DatePicker";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 
 const CreateTender = () => {
   const account = useSelector((state) => state.web3.account);
   const contract = useSelector((state) => state.web3.contract);
 
+  const currentDate = new Date();
+
+  const [startDate, setStartDate] = useState(
+    dayjs(
+      `${currentDate.getFullYear()}-${
+        currentDate.getMonth() + 1
+      }-${currentDate.getDate()}`
+    )
+  );
+
+  const [endDate, setEndDate] = useState(
+    dayjs(
+      `${currentDate.getFullYear()}-${
+        currentDate.getMonth() + 1
+      }-${currentDate.getDate()}`
+    )
+  );
+
+  const handleStartDateChange = (newValue) => {
+    setStartDate(newValue);
+  };
+
+  const handleEndDateChange = (newValue) => {
+    setEndDate(newValue);
+  };
+
   const [tender, setTender] = useState({
     tenderName: "",
     contractTitle: "",
-    startDate: "",
-    endDate: "",
     description: "",
-    tenderNumber: "",
+    tenderNumber: 1,
   });
 
   const handleChange = (e) => {
     setTender({ ...tender, [e.target.name]: e.target.value });
   };
 
+  console.log("Contract Is This", contract);
+  console.log("Contract Methods Are ", contract.methods);
+  console.log("Account Is This", account);
+
+  const startTimestamp = Math.floor(
+    new Date(startDate.format("YYYY-MM-DD")).getTime() / 1000
+  );
+  const endTimestamp = Math.floor(
+    new Date(endDate.format("YYYY-MM-DD")).getTime() / 1000
+  );
+
   const createTask = async (event) => {
     event.preventDefault();
 
     try {
       const url = "http://localhost:5000/createTender";
-      const description = tender.description;
 
-      // const response = await axios.post(url, {
-      //   headers: {
-      //     "Content-Type": "application/json",
-      //   },
-      //   params: {
-      //     description: JSON.stringify(description),
-      //   },
-      // });
-      const response = await axios.post(url);
+      const data = {
+        name: tender.tenderName,
+        contractTitle: tender.contractTitle,
+        description: tender.description,
+        tenderNumber: parseInt(tender.tenderNumber),
+        startDate: startDate.format("YYYY-MM-DD"),
+        endDate: endDate.format("YYYY-MM-DD"),
+      };
+
+      const response = await axios.post(url, data);
+
+      if (response.status === 200) {
+        const responseData = response.data;
+        console.log(responseData);
+        if (contract && contract.methods) {
+          console.log("Bhupendra Jogi");
+          const metaMaskResults = await contract.methods
+            .createTender(
+              tender.tenderName,
+              tender.contractTitle,
+              tender.description,
+              parseInt(tender.tenderNumber),
+              startTimestamp,
+              endTimestamp
+            )
+            .send({ from: account });
+
+          if (metaMaskResults.status) {
+            alert("Tender Created Successfully");
+          } else {
+            alert("Tender Not Created Successfully");
+          }
+        }
+      } else {
+        alert("Task cannot be added");
+      }
+    } catch (error) {
+      // Handle errors here
+      console.error("There was a problem with the axios request:", error);
+    } finally {
+      console.log("finally");
+    }
+  };
+
+  const GetTenders = async (e) => {
+    e.preventDefault();
+    try {
+      const url = "http://localhost:5000/viewAllTenders";
+
+      const response = await axios.get(url);
 
       if (response.status === 200) {
         const responseData = response.data;
         // Handle the responseData as needed
         console.log(responseData);
-
-        if (contract && contract.methods) {
-          await contract.methods
-            .CreateTender(tender.description)
-            .send({ from: account });
-        }
       } else {
         alert("Task cannot be added");
       }
@@ -68,10 +142,6 @@ const CreateTender = () => {
 
   //   console.log(response.data);
   // };
-
-  console.log(tender);
-  console.log(account);
-  console.log(contract);
 
   return (
     <div>
@@ -146,13 +216,9 @@ const CreateTender = () => {
             >
               {/* SVG path here */}
             </svg>
-            <input
-              title="Input title"
-              name="input-name"
-              type="text"
-              className={styles.input_field}
-              id="email_field"
-            />
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <DatePicker value={startDate} onChange={handleStartDateChange} />
+            </LocalizationProvider>
           </div>
           <div className={styles.input_container}>
             <label className={styles.input_label} htmlFor="password_field">
@@ -195,7 +261,8 @@ const CreateTender = () => {
             <input
               title="Input title"
               name="tenderNumber"
-              type="text"
+              onChange={handleChange}
+              type="number"
               className={styles.input_field}
               id="email_field"
             />
@@ -214,20 +281,16 @@ const CreateTender = () => {
             >
               {/* SVG path here */}
             </svg>
-            <input
-              placeholder=""
-              title="Input title"
-              name="input-name"
-              type="text"
-              className={styles.input_field}
-              id="password_field"
-            />
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <DatePicker value={endDate} onChange={handleEndDateChange} />
+            </LocalizationProvider>
           </div>
         </div>
 
         <button
           title="Sign In"
           onClick={createTask}
+          // onClick={GetTenders}
           type="submit"
           className={`mr-auto ${styles.sign_in_btn}`}
         >

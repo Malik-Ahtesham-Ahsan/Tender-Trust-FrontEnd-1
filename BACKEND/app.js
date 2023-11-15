@@ -1,23 +1,14 @@
-// import express from 'express';
-// import dotenv from "dotenv";
-// import connect from './src/config/DataBaseConnection.js';
-// import cors from 'cors';
-// import passport from 'passport';
-
-// import { passportLocalSetup } from "./passport.js";
-// import expressSession from "express-session";
-
-// // Importing Routes
-// import Email from './src/routes/EmailVerification.js';
-// import Contractors from './src/routes/Contractor_Routes.js';
 const express = require("express");
 const dotenv = require("dotenv");
 const connect = require("./src/config/DataBaseConnection.js");
 const cors = require("cors");
 const passport = require("passport");
-
 const { passportLocalSetup } = require("./passport.js");
 const expressSession = require("express-session");
+
+// Import your Contractor and GovOfficial models
+const Contractor = require("./src/models/Contractor.js");
+
 
 // Importing Routes
 const Email = require("./src/routes/EmailVerification.js");
@@ -31,7 +22,7 @@ dotenv.config();
 app.use(express.json());
 
 // Passport Setup
-passportLocalSetup();
+passportLocalSetup(); // Setup for Contractors
 
 // Express Session
 app.use(
@@ -62,7 +53,9 @@ const { Web3 } = require("web3");
 const web3 = new Web3(
   "https://eth-sepolia.g.alchemy.com/v2/ks2UXGvvtc2BEiJ5RUzKmKgcBUCCldJJ"
 );
-const contractAddress = "0x88B238271e8B6f0AB102F65f2A767996B1D38C84";
+
+
+const contractAddress = "0x3c472e85D44FD0C87d496e511B4330C02c4AeA77";
 const contract = new web3.eth.Contract(ABI, contractAddress);
 
 app.post("/createTender", async (req, res) => {
@@ -76,18 +69,24 @@ app.post("/createTender", async (req, res) => {
       tenderNumber,
     } = req.body;
 
+    const startTimestamp = Math.floor(new Date(startDate).getTime() / 1000);
+    const endTimestamp = Math.floor(new Date(endDate).getTime() / 1000);
+
+    console.log(startTimestamp);
+    console.log(endTimestamp);
+
     const tender = await contract.methods
       .createTender(
         name,
         contractTitle,
         description,
-        startDate,
-        endDate,
+        startTimestamp,
+        endTimestamp,
         tenderNumber
       )
       .call();
 
-    res.status(200).json({ status: 200, message: "Tender Created" });
+    res.status(200).json({ status: 200, message: "Tender Created", tender });
   } catch (error) {
     res.status(404).json({ status: 500 });
     console.error(error);
@@ -97,8 +96,8 @@ app.post("/createTender", async (req, res) => {
 app.get("/viewAllTenders", async (req, res) => {
   try {
     const viewAllTenders = await contract.methods.getAllTenders().call();
-
-    res.status(200).json({ status: 200, viewAllTenders });
+    console.log(viewAllTenders);
+    res.status(200).json({ status: 200 });
   } catch (error) {
     res.status(404).json({ status: 500 });
     console.error(error);
